@@ -1,0 +1,6 @@
+pyproject.toml
+kapruka_concierge.egg-info/PKG-INFO
+kapruka_concierge.egg-info/SOURCES.txt
+kapruka_concierge.egg-info/dependency_links.txt
+kapruka_concierge.egg-info/requires.txt
+kapruka_concierge.egg-info/top_level.txt

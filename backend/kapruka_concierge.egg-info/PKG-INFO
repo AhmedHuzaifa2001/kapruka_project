@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: kapruka-concierge
+Version: 0.1.0
+Summary: Kapruka AI Shopping Concierge
+Requires-Python: >=3.12
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: groq
+Requires-Dist: httpx
+Requires-Dist: python-dotenv
+Requires-Dist: sse-starlette
+Requires-Dist: mcp[cli]

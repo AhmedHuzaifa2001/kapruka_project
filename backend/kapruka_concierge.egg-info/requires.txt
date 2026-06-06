@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+groq
+httpx
+python-dotenv
+sse-starlette
+mcp[cli]

@@ -1,0 +1,14 @@
+[project]
+name = "kapruka-concierge"
+version = "0.1.0"
+description = "Kapruka AI Shopping Concierge"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "groq",
+    "httpx",
+    "python-dotenv",
+    "sse-starlette",
+    "mcp[cli]",
+]
