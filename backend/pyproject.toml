@@ -11,4 +11,6 @@ dependencies = [
     "python-dotenv",
     "sse-starlette",
     "mcp[cli]",
+    "langchain", 
+    "langchain-groq"
 ]
