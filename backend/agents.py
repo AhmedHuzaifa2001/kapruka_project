@@ -1,4 +1,4 @@
-import os
+import json
 import asyncio
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
@@ -22,18 +22,17 @@ prompt_template = ChatPromptTemplate.from_messages([
     ("placeholder", "{agent_scratchpad}"), 
 ])
 
-async def chat(user_message: str):
+async def chat_stream(user_message: str):
     print("\n[System] Connecting to Kapruka and discovering tools...")
-    session = await kapruka_mcp.get_client()
+    yield f"data: {json.dumps({'status': 'Connecting to Kapruka...'})}\n\n"
     
+    session = await kapruka_mcp.get_client()
     mcp_tools_list = await session.list_tools()
     dynamic_tools = []
     
-    # CORE TOOLS FILTER: Keep only what we need to save thousands of tokens
     allowed_tools = ["kapruka_search_products", "kapruka_get_product", "kapruka_list_categories"]
     
     for t in mcp_tools_list.tools:
-        # Skip heavy tools we don't need right now to keep under the 8,000 token limit
         if t.name not in allowed_tools:
             continue
             
@@ -55,14 +54,12 @@ async def chat(user_message: str):
             if isinstance(value, dict):
                 if "$ref" in value or any("$ref" in str(v) for v in value.values()):
                     continue
-                # Token Saver: Shorten parameter descriptions if they are too wordy
                 if "description" in value and len(value["description"]) > 100:
                     value["description"] = value["description"][:95] + "..."
                 cleaned_properties[key] = value
             else:
                 cleaned_properties[key] = value
 
-        # Token Saver: Truncate tool description if it's massive
         tool_desc = t.description
         if tool_desc and len(tool_desc) > 150:
             tool_desc = tool_desc[:145] + "..."
@@ -79,8 +76,6 @@ async def chat(user_message: str):
                 }
             }
         })
-        
-    print(f"✅ Dynamically loaded & token-optimized {len(dynamic_tools)} core tools!")
 
     llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.7)
     llm_with_tools = llm.bind_tools(dynamic_tools)
@@ -96,13 +91,19 @@ async def chat(user_message: str):
         response = await llm_with_tools.ainvoke(messages)
         
         if not response.tool_calls:
-            return response.content
+            async for chunk in llm.astream(messages):
+                if chunk.content:
+                    yield f"data: {json.dumps({'chunk': chunk.content})}\n\n"
+            break 
             
-        print("🧠 AI is thinking... it needs to use a tool!")
         messages.append(response)
         
         for tool_call in response.tool_calls:
-            print(f"🛠️  Executing Tool: {tool_call['name']}")
+            tool_name = tool_call['name']
+            print(f"🛠️  Executing Tool: {tool_name}")
+            
+           
+            yield f"data: {json.dumps({'status': f'Using tool: {tool_name} ...'})}\n\n"
             
             args = tool_call["args"]
             
@@ -113,11 +114,6 @@ async def chat(user_message: str):
                 
             mcp_args = {"params": args}
             
-            raw_result = await kapruka_mcp.call_tool(tool_call["name"], mcp_args)
+            raw_result = await kapruka_mcp.call_tool(tool_name, mcp_args)
             messages.append(ToolMessage(content=str(raw_result), tool_call_id=tool_call["id"]))
 
-if __name__ == "__main__":
-    async def main():
-        await chat("Ayubowan! list all the iphones available right now")
-        
-    asyncio.run(main())
